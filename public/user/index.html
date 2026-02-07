@@ -10,139 +10,215 @@
     <style>
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
         }
 
-        .card {
-            backdrop-filter: blur(10px);
+        .glass-card {
+            backdrop-filter: blur(20px);
             background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .progress-bar {
             transition: width 0.5s ease-in-out;
         }
+
+        .section-card {
+            background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+
+        .profile-info-box {
+            background: linear-gradient(135deg, #e0e7ff 0%, #dbeafe 100%);
+            border-left: 4px solid #6366f1;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a6fd6 0%, #6a4190 100%);
+        }
+
+        .status-active {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .status-expired {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .status-limit {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
     </style>
 </head>
 
-<body class="gradient-bg min-h-screen flex items-center justify-center p-4">
-    <div class="card rounded-2xl shadow-2xl p-8 w-full max-w-md">
-        <!-- Header -->
-        <div class="text-center mb-8">
-            <div
-                class="w-16 h-16 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                <i class="fas fa-key text-white text-2xl"></i>
-            </div>
-            <h1 class="text-2xl font-bold text-gray-800">Kiểm tra API Key</h1>
-            <p class="text-gray-500 mt-2">Nhập API key để xem thông tin sử dụng</p>
-        </div>
+<body class="gradient-bg">
+    <div class="container mx-auto px-4 py-8 max-w-lg">
 
-        <!-- Input Form -->
-        <form id="checkForm" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-2">API Key của bạn</label>
+        <!-- Header Card -->
+        <div class="glass-card rounded-2xl shadow-2xl p-6 mb-6">
+            <div class="text-center">
+                <div
+                    class="w-20 h-20 bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+                    <i class="fas fa-key text-white text-3xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-800">Kiểm tra API Key</h1>
+                <p class="text-gray-500 mt-2 text-sm">Nhập API key để xem thông tin và cấu hình</p>
+            </div>
+
+            <!-- Input Form -->
+            <form id="checkForm" class="mt-6">
                 <div class="relative">
                     <input type="password" id="apiKeyInput" required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none pr-12"
+                        class="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none pr-24 text-lg"
                         placeholder="Nhập API key...">
-                    <button type="button" id="togglePassword"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                    <div class="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
+                        <button type="button" id="togglePassword"
+                            class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button type="submit" id="checkBtn"
+                            class="btn-primary text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <button type="submit" id="checkBtn"
-                class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white py-3 rounded-lg font-semibold hover:opacity-90 transition flex items-center justify-center gap-2">
-                <i class="fas fa-search"></i>
-                Kiểm tra
-            </button>
-        </form>
+            </form>
 
-        <!-- Error Message -->
-        <div id="errorMsg" class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-            <i class="fas fa-exclamation-circle mr-2"></i>
-            <span id="errorText">Đã xảy ra lỗi</span>
+            <!-- Error Message -->
+            <div id="errorMsg"
+                class="hidden mt-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm flex items-center">
+                <i class="fas fa-exclamation-circle mr-3 text-lg"></i>
+                <span id="errorText">Đã xảy ra lỗi</span>
+            </div>
         </div>
 
         <!-- Result Section -->
-        <div id="resultSection" class="hidden mt-6">
-            <div class="border-t pt-6">
-                <!-- Status Badge -->
-                <div class="flex items-center justify-between mb-4">
-                    <span class="text-gray-600">Trạng thái:</span>
-                    <span id="statusBadge" class="px-3 py-1 rounded-full text-sm font-semibold"></span>
+        <div id="resultSection" class="hidden space-y-4">
+
+            <!-- Status Card -->
+            <div class="glass-card rounded-2xl shadow-xl overflow-hidden">
+                <div id="statusHeader" class="status-active p-4 text-white">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <i id="statusIcon" class="fas fa-check-circle text-2xl"></i>
+                            <div>
+                                <p id="statusText" class="font-bold text-lg">Hoạt động</p>
+                                <p id="keyName" class="text-sm opacity-90 font-mono"></p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs opacity-75">Hết hạn</p>
+                            <p id="expiryDate" class="font-semibold"></p>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- Key Info -->
-                <div class="space-y-3 mb-6">
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-600"><i class="fas fa-key mr-2"></i>Key:</span>
-                        <span id="keyName" class="font-mono text-gray-800"></span>
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-gray-600"><i class="fas fa-calendar mr-2"></i>Hết hạn:</span>
-                        <span id="expiryDate" class="text-gray-800"></span>
-                    </div>
-                </div>
-
-                <!-- Usage Progress -->
-                <div class="bg-gray-50 rounded-lg p-4">
+                <!-- Usage Stats -->
+                <div class="p-4">
                     <div class="flex items-center justify-between mb-2">
-                        <span class="text-gray-700 font-medium">Sử dụng hôm nay</span>
-                        <span id="usageText" class="text-gray-600 text-sm"></span>
+                        <span class="text-gray-700 font-medium flex items-center gap-2">
+                            <i class="fas fa-chart-pie text-purple-500"></i>
+                            Sử dụng hôm nay
+                        </span>
+                        <span id="usageText" class="text-gray-800 font-bold"></span>
                     </div>
-                    <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
-                        <div id="usageBar" class="progress-bar h-full rounded-full"></div>
+                    <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div id="usageBar"
+                            class="progress-bar h-full rounded-full bg-gradient-to-r from-purple-500 to-indigo-600">
+                        </div>
                     </div>
-                    <div class="flex items-center justify-between mt-2 text-sm">
-                        <span id="usageDate" class="text-gray-500"></span>
-                        <span id="remainingText" class="text-gray-500"></span>
+                    <div class="flex items-center justify-between mt-2 text-sm text-gray-500">
+                        <span id="usageDate"></span>
+                        <span id="remainingText" class="font-medium"></span>
                     </div>
-                </div>
-
-                <!-- API Profile Selection -->
-                <div id="profileSection" class="bg-indigo-50 rounded-lg p-4 mt-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="text-gray-700 font-medium"><i class="fas fa-server mr-2"></i>API Source</span>
-                        <span id="currentProfileBadge"
-                            class="text-xs bg-indigo-200 text-indigo-700 px-2 py-1 rounded">Default</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <select id="profileSelect"
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm bg-white">
-                            <option value="">Default (Global)</option>
-                        </select>
-                        <button type="button" id="changeProfileBtn"
-                            class="px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition text-sm font-medium">
-                            <i class="fas fa-save"></i>
-                        </button>
-                    </div>
-                    <p id="profileMsg" class="hidden text-xs mt-2"></p>
-                </div>
-
-                <!-- Model Selection -->
-                <div id="modelSection" class="bg-purple-50 rounded-lg p-4 mt-4">
-                    <div class="flex items-center justify-between mb-3">
-                        <span class="text-gray-700 font-medium"><i class="fas fa-robot mr-2"></i>Chọn Model</span>
-                        <span id="currentModelBadge"
-                            class="text-xs bg-purple-200 text-purple-700 px-2 py-1 rounded">default</span>
-                    </div>
-                    <div class="flex gap-2">
-                        <select id="modelSelect"
-                            class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm bg-white">
-                            <option value="default">Claude Opus 4.6</option>
-                        </select>
-                        <button type="button" id="changeModelBtn"
-                            class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition text-sm font-medium">
-                            <i class="fas fa-exchange-alt"></i>
-                        </button>
-                    </div>
-                    <p id="modelMsg" class="hidden text-xs mt-2"></p>
                 </div>
             </div>
-        </div>
 
-        <!-- Footer -->
-        <div class="mt-8 text-center text-gray-400 text-sm">
-            <p>Liên hệ admin nếu cần hỗ trợ</p>
+            <!-- API Source Selection -->
+            <div class="section-card rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-server text-indigo-600"></i>
+                        </div>
+                        <span class="font-semibold text-gray-800">Nguồn API</span>
+                    </div>
+                    <span id="currentProfileBadge"
+                        class="text-xs bg-indigo-500 text-white px-3 py-1 rounded-full font-medium">Default</span>
+                </div>
+
+                <div class="flex gap-2">
+                    <select id="profileSelect"
+                        class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white font-medium">
+                        <option value="">Default (Global)</option>
+                    </select>
+                    <button type="button" id="changeProfileBtn"
+                        class="px-5 py-3 bg-indigo-500 text-white rounded-xl hover:bg-indigo-600 transition font-medium">
+                        <i class="fas fa-save"></i>
+                    </button>
+                </div>
+
+                <!-- Profile Description (shows when profile selected) -->
+                <div id="profileDescription" class="hidden profile-info-box rounded-xl p-3 mt-3">
+                    <p class="text-sm text-indigo-800 flex items-start gap-2">
+                        <i class="fas fa-info-circle mt-0.5 flex-shrink-0"></i>
+                        <span id="profileDescText">Thông tin server sẽ hiển thị ở đây</span>
+                    </p>
+                </div>
+
+                <p id="profileMsg" class="hidden text-xs mt-2"></p>
+            </div>
+
+            <!-- Model Selection -->
+            <div class="section-card rounded-2xl p-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-robot text-purple-600"></i>
+                        </div>
+                        <span class="font-semibold text-gray-800">Model AI</span>
+                    </div>
+                    <span id="currentModelBadge"
+                        class="text-xs bg-purple-500 text-white px-3 py-1 rounded-full font-medium">default</span>
+                </div>
+
+                <div class="flex gap-2">
+                    <select id="modelSelect"
+                        class="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none bg-white font-medium">
+                        <option value="default">Claude Opus 4.6</option>
+                    </select>
+                    <button type="button" id="changeModelBtn"
+                        class="px-5 py-3 bg-purple-500 text-white rounded-xl hover:bg-purple-600 transition font-medium">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <p id="modelMsg" class="hidden text-xs mt-2"></p>
+            </div>
+
+            <!-- Help Card -->
+            <div class="glass-card rounded-2xl p-4 text-center">
+                <p class="text-gray-500 text-sm">
+                    <i class="fas fa-headset mr-2 text-purple-500"></i>
+                    Liên hệ admin nếu cần hỗ trợ
+                </p>
+            </div>
         </div>
     </div>
 
@@ -155,6 +231,9 @@
         const errorMsg = document.getElementById('errorMsg');
         const errorText = document.getElementById('errorText');
         const resultSection = document.getElementById('resultSection');
+
+        let currentApiKey = '';
+        let currentProfiles = []; // Store profiles for description lookup
 
         // Toggle password visibility
         togglePassword.addEventListener('click', () => {
@@ -176,7 +255,7 @@
             errorMsg.classList.add('hidden');
             resultSection.classList.add('hidden');
             checkBtn.disabled = true;
-            checkBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang kiểm tra...';
+            checkBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
             try {
                 const response = await fetch(`${API_BASE}/user/status`, {
@@ -192,6 +271,7 @@
                 }
 
                 // Show result
+                currentApiKey = apiKey;
                 displayResult(data);
                 resultSection.classList.remove('hidden');
             } catch (error) {
@@ -199,22 +279,28 @@
                 errorMsg.classList.remove('hidden');
             } finally {
                 checkBtn.disabled = false;
-                checkBtn.innerHTML = '<i class="fas fa-search mr-2"></i>Kiểm tra';
+                checkBtn.innerHTML = '<i class="fas fa-search"></i>';
             }
         });
 
         function displayResult(data) {
-            // Status badge
-            const statusBadge = document.getElementById('statusBadge');
+            const statusHeader = document.getElementById('statusHeader');
+            const statusIcon = document.getElementById('statusIcon');
+            const statusText = document.getElementById('statusText');
+
+            // Status styling
             if (data.status === 'expired') {
-                statusBadge.className = 'px-3 py-1 rounded-full text-sm font-semibold bg-red-100 text-red-600';
-                statusBadge.textContent = 'Hết hạn';
+                statusHeader.className = 'status-expired p-4 text-white';
+                statusIcon.className = 'fas fa-times-circle text-2xl';
+                statusText.textContent = 'Hết hạn';
             } else if (data.status === 'limit_reached') {
-                statusBadge.className = 'px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-600';
-                statusBadge.textContent = 'Hết lượt hôm nay';
+                statusHeader.className = 'status-limit p-4 text-white';
+                statusIcon.className = 'fas fa-exclamation-circle text-2xl';
+                statusText.textContent = 'Hết lượt hôm nay';
             } else {
-                statusBadge.className = 'px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-600';
-                statusBadge.textContent = 'Hoạt động';
+                statusHeader.className = 'status-active p-4 text-white';
+                statusIcon.className = 'fas fa-check-circle text-2xl';
+                statusText.textContent = 'Hoạt động';
             }
 
             // Key info
@@ -222,9 +308,9 @@
             document.getElementById('expiryDate').textContent = formatDate(data.expiry);
 
             // Usage
-            document.getElementById('usageText').textContent = `${data.usage_today} / ${data.daily_limit} lượt`;
+            document.getElementById('usageText').textContent = `${data.usage_today} / ${data.daily_limit}`;
             document.getElementById('usageDate').textContent = `Ngày: ${formatDate(data.usage_date)}`;
-            document.getElementById('remainingText').textContent = `Còn lại: ${data.remaining} lượt`;
+            document.getElementById('remainingText').textContent = `Còn ${data.remaining} lượt`;
 
             // Progress bar
             const usageBar = document.getElementById('usageBar');
@@ -237,6 +323,10 @@
             } else {
                 usageBar.className = 'progress-bar h-full rounded-full bg-gradient-to-r from-purple-500 to-indigo-600';
             }
+
+            // Load additional data
+            loadModels(currentApiKey);
+            loadAPIProfiles(currentApiKey);
         }
 
         function formatDate(dateStr) {
@@ -245,8 +335,6 @@
         }
 
         // Model Selection
-        let currentApiKey = '';
-
         async function loadModels(apiKey) {
             try {
                 const response = await fetch(`${API_BASE}/user/model`, {
@@ -259,7 +347,6 @@
                 const modelSelect = document.getElementById('modelSelect');
                 const currentModelBadge = document.getElementById('currentModelBadge');
 
-                // Clear and populate select
                 modelSelect.innerHTML = '<option value="default">Claude Opus 4.6</option>';
 
                 if (data.models) {
@@ -271,7 +358,6 @@
                     });
                 }
 
-                // Set current selection
                 modelSelect.value = data.selected_model || 'default';
                 currentModelBadge.textContent = data.selected_model || 'default';
             } catch (error) {
@@ -286,8 +372,7 @@
             const selectedModel = modelSelect.value;
 
             if (!currentApiKey) {
-                modelMsg.textContent = '❌ Vui lòng kiểm tra key trước';
-                modelMsg.className = 'text-xs text-red-500 mt-2';
+                showMessage(modelMsg, '❌ Vui lòng kiểm tra key trước', 'error');
                 return;
             }
 
@@ -308,29 +393,17 @@
 
                 if (response.ok) {
                     document.getElementById('currentModelBadge').textContent = selectedModel;
-                    modelMsg.textContent = `✅ ${data.message || 'Đã đổi model thành công!'}`;
-                    modelMsg.className = 'text-xs text-green-600 mt-2';
+                    showMessage(modelMsg, `✅ ${data.message || 'Đã đổi model!'}`, 'success');
                 } else {
-                    modelMsg.textContent = `❌ ${data.error || 'Lỗi đổi model'}`;
-                    modelMsg.className = 'text-xs text-red-500 mt-2';
+                    showMessage(modelMsg, `❌ ${data.error || 'Lỗi'}`, 'error');
                 }
             } catch (error) {
-                modelMsg.textContent = '❌ Lỗi kết nối server';
-                modelMsg.className = 'text-xs text-red-500 mt-2';
+                showMessage(modelMsg, '❌ Lỗi kết nối', 'error');
             } finally {
                 changeBtn.disabled = false;
-                changeBtn.innerHTML = '<i class="fas fa-exchange-alt"></i>';
+                changeBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
             }
         });
-
-        // Update the displayResult function to also load models
-        const originalDisplayResult = displayResult;
-        displayResult = function (data) {
-            originalDisplayResult(data);
-            currentApiKey = apiKeyInput.value.trim();
-            loadModels(currentApiKey);
-            loadAPIProfiles(currentApiKey);
-        };
 
         // API Profile Selection
         async function loadAPIProfiles(apiKey) {
@@ -345,31 +418,31 @@
                 const profileSelect = document.getElementById('profileSelect');
                 const currentProfileBadge = document.getElementById('currentProfileBadge');
 
-                // Clear and populate select
                 profileSelect.innerHTML = '<option value="">Default (Global)</option>';
+                currentProfiles = data.profiles || [];
 
-                if (data.profiles && data.profiles.length > 0) {
-                    data.profiles.forEach(profile => {
+                if (currentProfiles.length > 0) {
+                    currentProfiles.forEach(profile => {
                         const option = document.createElement('option');
                         option.value = profile.id;
-                        // Add metadata to label
                         let label = profile.name;
                         if (profile.speed) label += ` [${profile.speed.toUpperCase()}]`;
                         option.textContent = label;
+                        option.dataset.description = profile.description || '';
                         profileSelect.appendChild(option);
                     });
                 }
 
-                // Set current selection
                 const selectedId = data.selected_profile_id || '';
                 profileSelect.value = selectedId;
 
-                // Update badge text
                 if (selectedId) {
-                    const selectedProfile = data.profiles.find(p => p.id === selectedId);
+                    const selectedProfile = currentProfiles.find(p => p.id === selectedId);
                     currentProfileBadge.textContent = selectedProfile ? selectedProfile.name : 'Unknown';
+                    updateProfileDescription(selectedId);
                 } else {
                     currentProfileBadge.textContent = 'Default';
+                    hideProfileDescription();
                 }
 
             } catch (error) {
@@ -377,15 +450,41 @@
             }
         }
 
+        // Show profile description when selection changes
+        document.getElementById('profileSelect')?.addEventListener('change', (e) => {
+            const selectedId = e.target.value;
+            if (selectedId) {
+                updateProfileDescription(selectedId);
+            } else {
+                hideProfileDescription();
+            }
+        });
+
+        function updateProfileDescription(profileId) {
+            const profile = currentProfiles.find(p => p.id === profileId);
+            const descBox = document.getElementById('profileDescription');
+            const descText = document.getElementById('profileDescText');
+
+            if (profile && profile.description) {
+                descText.textContent = profile.description;
+                descBox.classList.remove('hidden');
+            } else {
+                hideProfileDescription();
+            }
+        }
+
+        function hideProfileDescription() {
+            document.getElementById('profileDescription').classList.add('hidden');
+        }
+
         document.getElementById('changeProfileBtn')?.addEventListener('click', async () => {
             const profileSelect = document.getElementById('profileSelect');
             const profileMsg = document.getElementById('profileMsg');
             const changeBtn = document.getElementById('changeProfileBtn');
-            const selectedProfileId = profileSelect.value || null; // Send null for default
+            const selectedProfileId = profileSelect.value || null;
 
             if (!currentApiKey) {
-                profileMsg.textContent = '❌ Vui lòng kiểm tra key trước';
-                profileMsg.className = 'text-xs text-red-500 mt-2';
+                showMessage(profileMsg, '❌ Vui lòng kiểm tra key trước', 'error');
                 return;
             }
 
@@ -405,27 +504,34 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Update badge
                     const selectedOption = profileSelect.options[profileSelect.selectedIndex];
-                    document.getElementById('currentProfileBadge').textContent = selectedOption.text.split('[')[0].trim();
-                    if (selectedProfileId === null || selectedProfileId === "") {
-                        document.getElementById('currentProfileBadge').textContent = 'Default';
-                    }
+                    const badgeName = selectedProfileId ?
+                        selectedOption.text.split('[')[0].trim() : 'Default';
+                    document.getElementById('currentProfileBadge').textContent = badgeName;
 
-                    profileMsg.textContent = `✅ ${data.message || 'Đã đổi nguồn API thành công!'}`;
-                    profileMsg.className = 'text-xs text-green-600 mt-2';
+                    showMessage(profileMsg, `✅ ${data.message || 'Đã lưu!'}`, 'success');
                 } else {
-                    profileMsg.textContent = `❌ ${data.error || 'Lỗi đổi nguồn API'}`;
-                    profileMsg.className = 'text-xs text-red-500 mt-2';
+                    showMessage(profileMsg, `❌ ${data.error || 'Lỗi'}`, 'error');
                 }
             } catch (error) {
-                profileMsg.textContent = '❌ Lỗi kết nối server';
-                profileMsg.className = 'text-xs text-red-500 mt-2';
+                showMessage(profileMsg, '❌ Lỗi kết nối', 'error');
             } finally {
                 changeBtn.disabled = false;
                 changeBtn.innerHTML = '<i class="fas fa-save"></i>';
             }
         });
+
+        function showMessage(element, text, type) {
+            element.textContent = text;
+            element.className = type === 'success'
+                ? 'text-xs text-green-600 mt-2 block'
+                : 'text-xs text-red-500 mt-2 block';
+            element.classList.remove('hidden');
+
+            setTimeout(() => {
+                element.classList.add('hidden');
+            }, 3000);
+        }
     </script>
 </body>
 
