@@ -450,26 +450,35 @@
             }
         }
 
-        // Show profile description when selection changes
-        document.getElementById('profileSelect')?.addEventListener('change', (e) => {
-            const selectedId = e.target.value;
-            if (selectedId) {
-                updateProfileDescription(selectedId);
-            } else {
-                hideProfileDescription();
-            }
-        });
+        // Show profile description when selection changes - using onchange attribute as backup
+        const profileSelectEl = document.getElementById('profileSelect');
+        if (profileSelectEl) {
+            profileSelectEl.onchange = function () {
+                const selectedId = this.value;
+                console.log('[Profile] Selection changed:', selectedId);
+                if (selectedId) {
+                    updateProfileDescription(selectedId);
+                } else {
+                    hideProfileDescription();
+                }
+            };
+        }
 
         function updateProfileDescription(profileId) {
+            console.log('[Profile] Looking for profile:', profileId, 'in', currentProfiles);
             const profile = currentProfiles.find(p => p.id === profileId);
             const descBox = document.getElementById('profileDescription');
             const descText = document.getElementById('profileDescText');
 
-            if (profile && profile.description) {
+            console.log('[Profile] Found profile:', profile);
+
+            if (profile && profile.description && profile.description.trim()) {
                 descText.textContent = profile.description;
                 descBox.classList.remove('hidden');
+                console.log('[Profile] Showing description:', profile.description);
             } else {
                 hideProfileDescription();
+                console.log('[Profile] No description to show');
             }
         }
 
