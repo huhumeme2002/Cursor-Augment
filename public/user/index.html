@@ -188,15 +188,11 @@
 
             <!-- Model Selection -->
             <div class="section-card rounded-2xl p-4">
-                <div class="flex items-center justify-between mb-3">
-                    <div class="flex items-center gap-2">
-                        <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <i class="fas fa-robot text-purple-600"></i>
-                        </div>
-                        <span class="font-semibold text-gray-800">Model AI</span>
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-robot text-purple-600"></i>
                     </div>
-                    <span id="currentModelBadge"
-                        class="text-xs bg-purple-500 text-white px-3 py-1 rounded-full font-medium">default</span>
+                    <span class="font-semibold text-gray-800">Model AI</span>
                 </div>
 
                 <div class="flex gap-2">
@@ -345,7 +341,6 @@
 
                 const data = await response.json();
                 const modelSelect = document.getElementById('modelSelect');
-                const currentModelBadge = document.getElementById('currentModelBadge');
 
                 modelSelect.innerHTML = '<option value="default">Claude Opus 4.6</option>';
 
@@ -359,7 +354,6 @@
                 }
 
                 modelSelect.value = data.selected_model || 'default';
-                currentModelBadge.textContent = data.selected_model || 'default';
             } catch (error) {
                 console.error('Load models error:', error);
             }
@@ -392,7 +386,6 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    document.getElementById('currentModelBadge').textContent = selectedModel;
                     showMessage(modelMsg, `✅ ${data.message || 'Đã đổi model!'}`, 'success');
                 } else {
                     showMessage(modelMsg, `❌ ${data.error || 'Lỗi'}`, 'error');
