@@ -179,6 +179,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         let apiBase = settings?.api_url || DEFAULT_API_BASE;
         let apiKey = settings?.api_key || process.env.API_KEY_GOC;
         let profileName = 'Default Global';
+        let profileModelActual: string | undefined = undefined; // Model override from profile
 
         // Check for User-Selected API Profile
         if (keyData.selected_api_profile_id) {
@@ -187,7 +188,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 apiBase = profile.api_url;
                 apiKey = profile.api_key;
                 profileName = `Profile: ${profile.name}`;
-                console.log(`[PROXY] Using User Selected Profile: ${profile.name} (${profile.id})`);
+                profileModelActual = profile.model_actual; // Store profile's model_actual
+                console.log(`[PROXY] Using User Selected Profile: ${profile.name} (${profile.id})`, {
+                    profileModelActual: profileModelActual || '(using global)'
+                });
             } else {
                 console.warn(`[PROXY] Selected profile ${keyData.selected_api_profile_id} not found or inactive. Falling back to default.`);
             }
@@ -212,14 +216,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // ====================
             // requestBody already declared above
 
-            // Transform model name using settings
+            // Transform model name using settings (prioritize profile's model_actual)
             const modelDisplay = settings?.model_display || 'Claude-Opus-4.5-VIP';
-            const modelActual = settings?.model_actual || 'claude-haiku-4-5-20251001';
+            const modelActual = profileModelActual || settings?.model_actual || 'claude-haiku-4-5-20251001';
 
             console.log('[PROXY] Model validation:', {
                 requestModel: requestBody.model,
                 modelDisplay,
                 modelActual,
+                usingProfileModel: !!profileModelActual,
                 isValidModel: requestBody.model === modelDisplay
             });
 

@@ -464,11 +464,14 @@
         <div class="grid grid-cols-2 gap-4">
           <div class="col-span-2 md:col-span-1">
             <label class="block text-sm font-medium text-gray-700 mb-1">Ten Profile *</label>
-            <input type="text" id="profileName" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Vi du: Claude 3.5 Sonnet (Main)">
+            <input type="text" id="profileName" required
+              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              placeholder="Vi du: Claude 3.5 Sonnet (Main)">
           </div>
           <div class="col-span-2 md:col-span-1">
             <label class="block text-sm font-medium text-gray-700 mb-1">Toc do hien thi</label>
-            <select id="profileSpeed" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
+            <select id="profileSpeed"
+              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
               <option value="fast">Fast (Nhanh)</option>
               <option value="medium">Medium (Trung binh)</option>
               <option value="slow">Slow (Cham)</option>
@@ -477,32 +480,50 @@
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">API URL (Endpoint) *</label>
-          <input type="url" id="profileUrl" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="https://api.anthropic.com/v1">
+          <input type="url" id="profileUrl" required
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+            placeholder="https://api.anthropic.com/v1">
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">API Key *</label>
-          <input type="password" id="profileKey" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="sk-ant-...">
+          <input type="password" id="profileKey" required
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+            placeholder="sk-ant-...">
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Model that (ten model thuc te cua backend)</label>
+          <input type="text" id="profileModelActual"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+            placeholder="claude-haiku-4.5">
+          <p class="text-xs text-gray-500 mt-1">De trong de su dung model mac dinh tu Settings</p>
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Trang thai</label>
-            <select id="profileStatus" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
+            <select id="profileStatus"
+              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
               <option value="true">Active (Hoat dong)</option>
               <option value="false">Inactive (Tam dung)</option>
             </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Capabilities (ngan cach boi dau phay)</label>
-            <input type="text" id="profileCapabilities" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="image, tools, vision">
+            <input type="text" id="profileCapabilities"
+              class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+              placeholder="image, tools, vision">
           </div>
         </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Mo ta (Ghi chu)</label>
-          <textarea id="profileDescription" rows="2" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none" placeholder="Ghi chu ve nguon nay..."></textarea>
+          <textarea id="profileDescription" rows="2"
+            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+            placeholder="Ghi chu ve nguon nay..."></textarea>
         </div>
         <div class="flex space-x-4 mt-6">
-          <button type="button" onclick="closeProfileModal()" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition">Huy</button>
-          <button type="submit" class="flex-1 btn-primary text-white py-3 rounded-lg font-semibold"><i class="fas fa-save mr-2"></i>Luu Profile</button>
+          <button type="button" onclick="closeProfileModal()"
+            class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition">Huy</button>
+          <button type="submit" class="flex-1 btn-primary text-white py-3 rounded-lg font-semibold"><i
+              class="fas fa-save mr-2"></i>Luu Profile</button>
         </div>
       </form>
     </div>

@@ -29,6 +29,7 @@ export interface APIProfile {
     name: string;           // Display name (e.g. "Primary Claude", "Backup GPT-4")
     api_key: string;        // The actual API key for this backend
     api_url: string;        // The endpoint URL
+    model_actual?: string;  // The actual model name for this backend (overrides global model_actual)
     capabilities: string[]; // e.g. ["image", "tools"]
     speed: "fast" | "medium" | "slow";
     description?: string;

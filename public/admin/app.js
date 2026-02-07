@@ -903,6 +903,7 @@ window.openProfileModal = function (profileId = null) {
     document.getElementById('profileName').value = '';
     document.getElementById('profileUrl').value = '';
     document.getElementById('profileKey').value = '';
+    document.getElementById('profileModelActual').value = '';
     document.getElementById('profileSpeed').value = 'medium';
     document.getElementById('profileStatus').value = 'true';
     document.getElementById('profileCapabilities').value = '';
@@ -917,6 +918,7 @@ window.openProfileModal = function (profileId = null) {
         document.getElementById('profileName').value = p.name;
         document.getElementById('profileUrl').value = p.api_url;
         document.getElementById('profileKey').value = p.api_key;
+        document.getElementById('profileModelActual').value = p.model_actual || '';
         document.getElementById('profileSpeed').value = p.speed;
         document.getElementById('profileStatus').value = p.is_active.toString();
         document.getElementById('profileCapabilities').value = (p.capabilities || []).join(', ');
@@ -949,6 +951,7 @@ window.saveProfile = async function () {
     const name = document.getElementById('profileName').value.trim();
     const api_url = document.getElementById('profileUrl').value.trim();
     const api_key = document.getElementById('profileKey').value.trim();
+    const model_actual = document.getElementById('profileModelActual').value.trim() || null;
     const speed = document.getElementById('profileSpeed').value;
     const is_active = document.getElementById('profileStatus').value === 'true';
     const capabilities = document.getElementById('profileCapabilities').value.split(',').map(s => s.trim()).filter(s => s);
@@ -961,7 +964,7 @@ window.saveProfile = async function () {
     }
 
     const payload = {
-        name, api_url, api_key, speed, is_active, capabilities, description
+        name, api_url, api_key, model_actual, speed, is_active, capabilities, description
     };
 
     const endpoint = id ? `${API_BASE}/admin/profiles/update` : `${API_BASE}/admin/profiles/create`;
