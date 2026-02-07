@@ -204,342 +204,341 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('[PROXY] Final upstream URL:', apiUrl);
 
         if (!apiKey) {
-            if (!apiKey) {
-                return res.status(500).json({
-                    error: 'API Key not configured',
-                    message: 'Please configure API Key in Admin Panel Settings'
-                });
-            }
-
-            // ====================
-            // 5. MODEL VALIDATION & TRANSFORMATION
-            // ====================
-            // requestBody already declared above
-
-            // Transform model name using settings (prioritize profile's model_actual)
-            const modelDisplay = settings?.model_display || 'Claude-Opus-4.5-VIP';
-            const modelActual = profileModelActual || settings?.model_actual || 'claude-haiku-4-5-20251001';
-
-            console.log('[PROXY] Model validation:', {
-                requestModel: requestBody.model,
-                modelDisplay,
-                modelActual,
-                usingProfileModel: !!profileModelActual,
-                isValidModel: requestBody.model === modelDisplay
-            });
-
-            // Validate model - reject if doesn't match allowed model
-            if (requestBody.model !== modelDisplay) {
-                console.log('[PROXY] REJECTED - Invalid model:', {
-                    requested: requestBody.model,
-                    allowed: modelDisplay,
-                    clientIP
-                });
-                return res.status(400).json({
-                    error: 'Invalid model',
-                    message: `Model "${requestBody.model}" is not available. Please use "${modelDisplay}".`,
-                    type: 'invalid_request_error'
-                });
-            }
-
-            // Transform to actual model for upstream
-            requestBody.model = modelActual;
-            console.log('[PROXY] Model transformed to:', modelActual);
-
-            // ====================
-            // 6. SYSTEM PROMPT INJECTION
-            // ====================
-            // Start with default system prompt
-            let systemPrompt = settings?.system_prompt;
-
-            // Check if this key has a selected model with custom system prompt
-            const keySelectedModel = keyData.selected_model;
-            if (keySelectedModel && settings?.models?.[keySelectedModel]) {
-                const modelConfig = settings.models[keySelectedModel];
-                systemPrompt = modelConfig.system_prompt;
-                console.log('[PROXY] Using model-specific system prompt:', {
-                    modelId: keySelectedModel,
-                    modelName: modelConfig.name,
-                    promptPreview: systemPrompt?.substring(0, 50) || '(empty)'
-                });
-            } else {
-                console.log('[PROXY] Using default system prompt:', {
-                    keyHasModel: !!keySelectedModel,
-                    modelConfigExists: keySelectedModel ? !!settings?.models?.[keySelectedModel] : false
-                });
-            }
-
-            // Validate and sanitize system prompt
-            if (systemPrompt && typeof systemPrompt === 'string') {
-                // Trim whitespace
-                systemPrompt = systemPrompt.trim();
-
-                // Skip if empty after trimming
-                if (!systemPrompt) {
-                    console.log('[PROXY] System prompt is empty after trim, skipping injection');
-                    systemPrompt = undefined;
-                } else {
-                    // Log system prompt info
-                    console.log('[PROXY] System prompt info:', {
-                        length: systemPrompt.length,
-                        preview: systemPrompt.substring(0, 100) + (systemPrompt.length > 100 ? '...' : ''),
-                        hasNewlines: systemPrompt.includes('\n'),
-                        hasSpecialChars: /[^\x20-\x7E\n\r\t]/.test(systemPrompt)
-                    });
-
-                    // Limit system prompt length (some APIs have limits)
-                    const MAX_SYSTEM_PROMPT_LENGTH = 10000;
-                    if (systemPrompt.length > MAX_SYSTEM_PROMPT_LENGTH) {
-                        console.log(`[PROXY] System prompt too long (${systemPrompt.length}), truncating to ${MAX_SYSTEM_PROMPT_LENGTH}`);
-                        systemPrompt = systemPrompt.substring(0, MAX_SYSTEM_PROMPT_LENGTH);
-                    }
-                }
-            }
-
-            if (systemPrompt) {
-                // Check if it's Anthropic API format (has 'system' field OR URL contains '/messages') vs OpenAI format
-                const isAnthropic = 'system' in requestBody || clientPath.includes('/messages');
-
-                if (isAnthropic) {
-                    // Anthropic API: REPLACE existing system with our configured prompt
-                    const existingSystem = requestBody.system;
-
-                    // Log original system format for debugging
-                    console.log('[PROXY] Original system field:', {
-                        type: typeof existingSystem,
-                        isArray: Array.isArray(existingSystem),
-                        preview: typeof existingSystem === 'string'
-                            ? existingSystem.substring(0, 50)
-                            : JSON.stringify(existingSystem).substring(0, 100)
-                    });
-
-                    // REPLACE completely with our system prompt
-                    requestBody.system = systemPrompt;
-                    console.log('[PROXY] Replaced Anthropic system field with configured prompt');
-                } else if (requestBody.messages && Array.isArray(requestBody.messages)) {
-                    // OpenAI API: inject into messages array
-                    const hasSystemMessage = requestBody.messages.some(
-                        (msg: any) => msg.role === 'system'
-                    );
-
-                    if (hasSystemMessage) {
-                        // REPLACE existing system message
-                        requestBody.messages = requestBody.messages.map((msg: any) =>
-                            msg.role === 'system'
-                                ? { role: 'system', content: systemPrompt }
-                                : msg
-                        );
-                        console.log('[PROXY] Replaced OpenAI system message with configured prompt');
-                    } else {
-                        requestBody.messages.unshift({
-                            role: 'system',
-                            content: systemPrompt
-                        });
-                        console.log('[PROXY] Injected OpenAI system message');
-                    }
-                }
-            }
-
-            // ====================
-            // 6. PROXY REQUEST (like CF Worker)
-            // ====================
-            console.log('[PROXY] Forwarding request:', {
-                method: 'POST',
-                url: apiUrl,
-                hasAuth: !!apiKey,
-                bodyKeys: Object.keys(requestBody),
-                stream: requestBody.stream
-            });
-
-            // Create AbortController with timeout for long requests
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => {
-                console.log('[PROXY] Request timeout - aborting after 120s');
-                controller.abort();
-            }, 120000); // 120 second timeout
-
-            let response: Response;
-            try {
-                response = await fetch(apiUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`,
-                        'Accept': 'text/event-stream',
-                        'Connection': 'keep-alive',
-                    },
-                    body: JSON.stringify(requestBody),
-                    signal: controller.signal,
-                });
-            } catch (fetchError) {
-                clearTimeout(timeoutId);
-                console.error('[PROXY] Fetch error:', {
-                    error: fetchError instanceof Error ? fetchError.message : 'Unknown error',
-                    name: fetchError instanceof Error ? fetchError.name : 'Unknown'
-                });
-
-                if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-                    return res.status(504).json({ error: 'Request timeout - upstream took too long' });
-                }
-                throw fetchError;
-            }
-            clearTimeout(timeoutId);
-
-            console.log('[PROXY] Upstream response:', {
-                status: response.status,
-                statusText: response.statusText,
-                headers: Object.fromEntries(response.headers.entries())
-            });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('[PROXY] Upstream error:', {
-                    status: response.status,
-                    error: errorText
-                });
-                return res.status(response.status).json({
-                    error: 'Upstream API error',
-                    details: errorText
-                });
-            }
-
-            // ====================
-            // 7. STREAM RESPONSE (passthrough like CF Worker)
-            // ====================
-            if (requestBody.stream) {
-                console.log('[PROXY] Starting stream response');
-                res.setHeader('Content-Type', 'text/event-stream');
-                res.setHeader('Cache-Control', 'no-cache, no-store');
-                res.setHeader('Connection', 'keep-alive');
-                res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
-
-                // Track client disconnect
-                let clientDisconnected = false;
-                req.on('close', () => {
-                    console.log('[PROXY] Client disconnected');
-                    clientDisconnected = true;
-                });
-
-                const reader = response.body?.getReader();
-                if (!reader) {
-                    console.error('[PROXY] Failed to get stream reader');
-                    return res.status(500).json({ error: 'Failed to read stream' });
-                }
-
-                const decoder = new TextDecoder();
-                let chunkCount = 0;
-                let totalBytes = 0;
-                let lastChunkTime = Date.now();
-
-                try {
-                    while (true) {
-                        // Check if client disconnected
-                        if (clientDisconnected) {
-                            console.log('[PROXY] Stopping stream - client disconnected');
-                            await reader.cancel();
-                            break;
-                        }
-
-                        const { done, value } = await reader.read();
-
-                        if (done) {
-                            console.log('[PROXY] Stream completed:', {
-                                totalChunks: chunkCount,
-                                totalBytes,
-                                duration: Date.now() - lastChunkTime + 'ms since last chunk'
-                            });
-                            res.end();
-                            break;
-                        }
-
-                        chunkCount++;
-                        totalBytes += value.length;
-                        lastChunkTime = Date.now();
-
-                        // Log first few chunks for debugging
-                        if (chunkCount <= 3) {
-                            console.log(`[PROXY] Received chunk ${chunkCount}:`, {
-                                bytes: value.length,
-                                preview: decoder.decode(value.slice(0, 100), { stream: true })
-                            });
-                        }
-
-                        // Passthrough the stream chunk directly
-                        let chunk = decoder.decode(value, { stream: true });
-
-                        // Replace model name in response - use dynamic model names
-                        chunk = chunk.replace(new RegExp(modelActual, 'g'), modelDisplay);
-                        // Also replace common model identifiers
-                        chunk = chunk.replace(/Claude Code/g, 'Claude Opus');
-                        chunk = chunk.replace(/claude-3-5-haiku/g, modelDisplay);
-                        chunk = chunk.replace(/Haiku/g, 'Opus');
-                        chunk = chunk.replace(/Sonnet/g, 'Opus');
-                        chunk = chunk.replace(/4\.5 Sonnet/g, '4.5 Opus');
-
-                        // Write with error handling
-                        if (!res.writableEnded) {
-                            res.write(chunk);
-                        } else {
-                            console.log('[PROXY] Response already ended, stopping');
-                            break;
-                        }
-                    }
-                } catch (error) {
-                    console.error('[PROXY] Stream error:', {
-                        error: error instanceof Error ? error.message : 'Unknown error',
-                        stack: error instanceof Error ? error.stack : undefined,
-                        chunksProcessed: chunkCount,
-                        bytesProcessed: totalBytes
-                    });
-
-                    // Try to send error if we haven't sent any data yet
-                    if (chunkCount === 0 && !res.headersSent) {
-                        return res.status(502).json({
-                            error: 'Upstream stream failed',
-                            message: error instanceof Error ? error.message : 'Unknown error'
-                        });
-                    }
-
-                    if (!res.writableEnded) {
-                        res.end();
-                    }
-                }
-            } else {
-                // ====================
-                // 8. NON-STREAMING RESPONSE
-                // ====================
-                console.log('[PROXY] Processing non-streaming response');
-                const data = await response.json();
-
-                console.log('[PROXY] Response data structure:', {
-                    keys: data && typeof data === 'object' ? Object.keys(data) : [],
-                    hasModel: data && typeof data === 'object' && 'model' in data,
-                    hasChoices: data && typeof data === 'object' && 'choices' in data
-                });
-
-                // Replace model name in response - use dynamic model names
-                const modifiedData = JSON.parse(
-                    JSON.stringify(data)
-                        .replace(new RegExp(modelActual, 'g'), modelDisplay)
-                        .replace(/Claude Code/g, 'Claude Opus')
-                        .replace(/claude-3-5-haiku/g, modelDisplay)
-                        .replace(/Haiku/g, 'Opus')
-                        .replace(/Sonnet/g, 'Opus')
-                        .replace(/4\.5 Sonnet/g, '4.5 Opus')
-                );
-
-                console.log('[PROXY] Returning response with status 200');
-                return res.status(200).json(modifiedData);
-            }
-        } catch (error) {
-            console.error('[PROXY] Fatal error in proxy handler:', {
-                error: error instanceof Error ? error.message : 'Unknown error',
-                stack: error instanceof Error ? error.stack : undefined,
-                type: error instanceof Error ? error.constructor.name : typeof error
-            });
             return res.status(500).json({
-                error: 'Internal server error',
-                message: error instanceof Error ? error.message : 'Unknown error'
+                error: 'API Key not configured',
+                message: 'Please configure API Key in Admin Panel Settings'
             });
         }
+
+        // ====================
+        // 5. MODEL VALIDATION & TRANSFORMATION
+        // ====================
+        // requestBody already declared above
+
+        // Transform model name using settings (prioritize profile's model_actual)
+        const modelDisplay = settings?.model_display || 'Claude-Opus-4.5-VIP';
+        const modelActual = profileModelActual || settings?.model_actual || 'claude-haiku-4-5-20251001';
+
+        console.log('[PROXY] Model validation:', {
+            requestModel: requestBody.model,
+            modelDisplay,
+            modelActual,
+            usingProfileModel: !!profileModelActual,
+            isValidModel: requestBody.model === modelDisplay
+        });
+
+        // Validate model - reject if doesn't match allowed model
+        if (requestBody.model !== modelDisplay) {
+            console.log('[PROXY] REJECTED - Invalid model:', {
+                requested: requestBody.model,
+                allowed: modelDisplay,
+                clientIP
+            });
+            return res.status(400).json({
+                error: 'Invalid model',
+                message: `Model "${requestBody.model}" is not available. Please use "${modelDisplay}".`,
+                type: 'invalid_request_error'
+            });
+        }
+
+        // Transform to actual model for upstream
+        requestBody.model = modelActual;
+        console.log('[PROXY] Model transformed to:', modelActual);
+
+        // ====================
+        // 6. SYSTEM PROMPT INJECTION
+        // ====================
+        // Start with default system prompt
+        let systemPrompt = settings?.system_prompt;
+
+        // Check if this key has a selected model with custom system prompt
+        const keySelectedModel = keyData.selected_model;
+        if (keySelectedModel && settings?.models?.[keySelectedModel]) {
+            const modelConfig = settings.models[keySelectedModel];
+            systemPrompt = modelConfig.system_prompt;
+            console.log('[PROXY] Using model-specific system prompt:', {
+                modelId: keySelectedModel,
+                modelName: modelConfig.name,
+                promptPreview: systemPrompt?.substring(0, 50) || '(empty)'
+            });
+        } else {
+            console.log('[PROXY] Using default system prompt:', {
+                keyHasModel: !!keySelectedModel,
+                modelConfigExists: keySelectedModel ? !!settings?.models?.[keySelectedModel] : false
+            });
+        }
+
+        // Validate and sanitize system prompt
+        if (systemPrompt && typeof systemPrompt === 'string') {
+            // Trim whitespace
+            systemPrompt = systemPrompt.trim();
+
+            // Skip if empty after trimming
+            if (!systemPrompt) {
+                console.log('[PROXY] System prompt is empty after trim, skipping injection');
+                systemPrompt = undefined;
+            } else {
+                // Log system prompt info
+                console.log('[PROXY] System prompt info:', {
+                    length: systemPrompt.length,
+                    preview: systemPrompt.substring(0, 100) + (systemPrompt.length > 100 ? '...' : ''),
+                    hasNewlines: systemPrompt.includes('\n'),
+                    hasSpecialChars: /[^\x20-\x7E\n\r\t]/.test(systemPrompt)
+                });
+
+                // Limit system prompt length (some APIs have limits)
+                const MAX_SYSTEM_PROMPT_LENGTH = 10000;
+                if (systemPrompt.length > MAX_SYSTEM_PROMPT_LENGTH) {
+                    console.log(`[PROXY] System prompt too long (${systemPrompt.length}), truncating to ${MAX_SYSTEM_PROMPT_LENGTH}`);
+                    systemPrompt = systemPrompt.substring(0, MAX_SYSTEM_PROMPT_LENGTH);
+                }
+            }
+        }
+
+        if (systemPrompt) {
+            // Check if it's Anthropic API format (has 'system' field OR URL contains '/messages') vs OpenAI format
+            const isAnthropic = 'system' in requestBody || clientPath.includes('/messages');
+
+            if (isAnthropic) {
+                // Anthropic API: REPLACE existing system with our configured prompt
+                const existingSystem = requestBody.system;
+
+                // Log original system format for debugging
+                console.log('[PROXY] Original system field:', {
+                    type: typeof existingSystem,
+                    isArray: Array.isArray(existingSystem),
+                    preview: typeof existingSystem === 'string'
+                        ? existingSystem.substring(0, 50)
+                        : JSON.stringify(existingSystem).substring(0, 100)
+                });
+
+                // REPLACE completely with our system prompt
+                requestBody.system = systemPrompt;
+                console.log('[PROXY] Replaced Anthropic system field with configured prompt');
+            } else if (requestBody.messages && Array.isArray(requestBody.messages)) {
+                // OpenAI API: inject into messages array
+                const hasSystemMessage = requestBody.messages.some(
+                    (msg: any) => msg.role === 'system'
+                );
+
+                if (hasSystemMessage) {
+                    // REPLACE existing system message
+                    requestBody.messages = requestBody.messages.map((msg: any) =>
+                        msg.role === 'system'
+                            ? { role: 'system', content: systemPrompt }
+                            : msg
+                    );
+                    console.log('[PROXY] Replaced OpenAI system message with configured prompt');
+                } else {
+                    requestBody.messages.unshift({
+                        role: 'system',
+                        content: systemPrompt
+                    });
+                    console.log('[PROXY] Injected OpenAI system message');
+                }
+            }
+        }
+
+        // ====================
+        // 6. PROXY REQUEST (like CF Worker)
+        // ====================
+        console.log('[PROXY] Forwarding request:', {
+            method: 'POST',
+            url: apiUrl,
+            hasAuth: !!apiKey,
+            bodyKeys: Object.keys(requestBody),
+            stream: requestBody.stream
+        });
+
+        // Create AbortController with timeout for long requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            console.log('[PROXY] Request timeout - aborting after 120s');
+            controller.abort();
+        }, 120000); // 120 second timeout
+
+        let response: Response;
+        try {
+            response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                    'Accept': 'text/event-stream',
+                    'Connection': 'keep-alive',
+                },
+                body: JSON.stringify(requestBody),
+                signal: controller.signal,
+            });
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+            console.error('[PROXY] Fetch error:', {
+                error: fetchError instanceof Error ? fetchError.message : 'Unknown error',
+                name: fetchError instanceof Error ? fetchError.name : 'Unknown'
+            });
+
+            if (fetchError instanceof Error && fetchError.name === 'AbortError') {
+                return res.status(504).json({ error: 'Request timeout - upstream took too long' });
+            }
+            throw fetchError;
+        }
+        clearTimeout(timeoutId);
+
+        console.log('[PROXY] Upstream response:', {
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries())
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('[PROXY] Upstream error:', {
+                status: response.status,
+                error: errorText
+            });
+            return res.status(response.status).json({
+                error: 'Upstream API error',
+                details: errorText
+            });
+        }
+
+        // ====================
+        // 7. STREAM RESPONSE (passthrough like CF Worker)
+        // ====================
+        if (requestBody.stream) {
+            console.log('[PROXY] Starting stream response');
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache, no-store');
+            res.setHeader('Connection', 'keep-alive');
+            res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+
+            // Track client disconnect
+            let clientDisconnected = false;
+            req.on('close', () => {
+                console.log('[PROXY] Client disconnected');
+                clientDisconnected = true;
+            });
+
+            const reader = response.body?.getReader();
+            if (!reader) {
+                console.error('[PROXY] Failed to get stream reader');
+                return res.status(500).json({ error: 'Failed to read stream' });
+            }
+
+            const decoder = new TextDecoder();
+            let chunkCount = 0;
+            let totalBytes = 0;
+            let lastChunkTime = Date.now();
+
+            try {
+                while (true) {
+                    // Check if client disconnected
+                    if (clientDisconnected) {
+                        console.log('[PROXY] Stopping stream - client disconnected');
+                        await reader.cancel();
+                        break;
+                    }
+
+                    const { done, value } = await reader.read();
+
+                    if (done) {
+                        console.log('[PROXY] Stream completed:', {
+                            totalChunks: chunkCount,
+                            totalBytes,
+                            duration: Date.now() - lastChunkTime + 'ms since last chunk'
+                        });
+                        res.end();
+                        break;
+                    }
+
+                    chunkCount++;
+                    totalBytes += value.length;
+                    lastChunkTime = Date.now();
+
+                    // Log first few chunks for debugging
+                    if (chunkCount <= 3) {
+                        console.log(`[PROXY] Received chunk ${chunkCount}:`, {
+                            bytes: value.length,
+                            preview: decoder.decode(value.slice(0, 100), { stream: true })
+                        });
+                    }
+
+                    // Passthrough the stream chunk directly
+                    let chunk = decoder.decode(value, { stream: true });
+
+                    // Replace model name in response - use dynamic model names
+                    chunk = chunk.replace(new RegExp(modelActual, 'g'), modelDisplay);
+                    // Also replace common model identifiers
+                    chunk = chunk.replace(/Claude Code/g, 'Claude Opus');
+                    chunk = chunk.replace(/claude-3-5-haiku/g, modelDisplay);
+                    chunk = chunk.replace(/Haiku/g, 'Opus');
+                    chunk = chunk.replace(/Sonnet/g, 'Opus');
+                    chunk = chunk.replace(/4\.5 Sonnet/g, '4.5 Opus');
+
+                    // Write with error handling
+                    if (!res.writableEnded) {
+                        res.write(chunk);
+                    } else {
+                        console.log('[PROXY] Response already ended, stopping');
+                        break;
+                    }
+                }
+            } catch (error) {
+                console.error('[PROXY] Stream error:', {
+                    error: error instanceof Error ? error.message : 'Unknown error',
+                    stack: error instanceof Error ? error.stack : undefined,
+                    chunksProcessed: chunkCount,
+                    bytesProcessed: totalBytes
+                });
+
+                // Try to send error if we haven't sent any data yet
+                if (chunkCount === 0 && !res.headersSent) {
+                    return res.status(502).json({
+                        error: 'Upstream stream failed',
+                        message: error instanceof Error ? error.message : 'Unknown error'
+                    });
+                }
+
+                if (!res.writableEnded) {
+                    res.end();
+                }
+            }
+        } else {
+            // ====================
+            // 8. NON-STREAMING RESPONSE
+            // ====================
+            console.log('[PROXY] Processing non-streaming response');
+            const data = await response.json();
+
+            console.log('[PROXY] Response data structure:', {
+                keys: data && typeof data === 'object' ? Object.keys(data) : [],
+                hasModel: data && typeof data === 'object' && 'model' in data,
+                hasChoices: data && typeof data === 'object' && 'choices' in data
+            });
+
+            // Replace model name in response - use dynamic model names
+            const modifiedData = JSON.parse(
+                JSON.stringify(data)
+                    .replace(new RegExp(modelActual, 'g'), modelDisplay)
+                    .replace(/Claude Code/g, 'Claude Opus')
+                    .replace(/claude-3-5-haiku/g, modelDisplay)
+                    .replace(/Haiku/g, 'Opus')
+                    .replace(/Sonnet/g, 'Opus')
+                    .replace(/4\.5 Sonnet/g, '4.5 Opus')
+            );
+
+            console.log('[PROXY] Returning response with status 200');
+            return res.status(200).json(modifiedData);
+        }
+    } catch (error) {
+        console.error('[PROXY] Fatal error in proxy handler:', {
+            error: error instanceof Error ? error.message : 'Unknown error',
+            stack: error instanceof Error ? error.stack : undefined,
+            type: error instanceof Error ? error.constructor.name : typeof error
+        });
+        return res.status(500).json({
+            error: 'Internal server error',
+            message: error instanceof Error ? error.message : 'Unknown error'
+        });
     }
+}
