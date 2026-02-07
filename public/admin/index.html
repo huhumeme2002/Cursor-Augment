@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - API Key Management</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+
+    .card-shadow {
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .table-hover tbody tr:hover {
+      background-color: rgba(102, 126, 234, 0.05);
+    }
+
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .slide-down {
+      animation: slideDown 0.3s ease-out;
+    }
+  </style>
+</head>
+
+<body class="bg-gray-50">
+
+  <!-- Login Page -->
+  <div id="loginPage" class="min-h-screen flex items-center justify-center gradient-bg">
+    <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md slide-down">
+      <div class="text-center mb-8">
+        <div class="inline-block p-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4">
+          <i class="fas fa-key text-white text-3xl"></i>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-800">Admin Panel</h1>
+        <p class="text-gray-500 mt-2">Quản lý API Keys</p>
+      </div>
+
+      <form id="loginForm" class="space-y-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Mật khẩu</label>
+          <input type="password" id="passwordInput" required
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none transition"
+            placeholder="Nhập mật khẩu admin">
+        </div>
+
+        <div id="loginError" class="hidden text-red-500 text-sm bg-red-50 p-3 rounded-lg">
+          Mật khẩu không đúng!
+        </div>
+
+        <button type="submit" class="w-full btn-primary text-white py-3 rounded-lg font-semibold">
+          <i class="fas fa-sign-in-alt mr-2"></i>Đăng nhập
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Dashboard Page -->
+  <div id="dashboardPage" class="hidden">
+    <!-- Header -->
+    <header class="gradient-bg text-white shadow-lg">
+      <div class="container mx-auto px-6 py-4">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center space-x-3">
+            <i class="fas fa-key text-2xl"></i>
+            <h1 class="text-2xl font-bold">API Key Management</h1>
+          </div>
+          <div class="flex items-center space-x-3">
+            <button id="settingsBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition">
+              <i class="fas fa-cog mr-2"></i>Settings
+            </button>
+            <button id="logoutBtn" class="bg-white/20 hover:bg-white/30 px-4 py-2 rounded-lg transition">
+              <i class="fas fa-sign-out-alt mr-2"></i>Đăng xuất
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Stats Cards -->
+    <div class="container mx-auto px-6 py-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="bg-white p-6 rounded-xl card-shadow slide-down">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-500 text-sm">Tổng số Keys</p>
+              <p id="statTotal" class="text-3xl font-bold text-gray-800 mt-2">0</p>
+            </div>
+            <div class="bg-blue-100 p-4 rounded-full">
+              <i class="fas fa-database text-blue-500 text-2xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl card-shadow slide-down" style="animation-delay: 0.1s">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-500 text-sm">Keys Hoạt động</p>
+              <p id="statActive" class="text-3xl font-bold text-green-600 mt-2">0</p>
+            </div>
+            <div class="bg-green-100 p-4 rounded-full">
+              <i class="fas fa-check-circle text-green-500 text-2xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl card-shadow slide-down" style="animation-delay: 0.2s">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-500 text-sm">Keys Hết hạn</p>
+              <p id="statExpired" class="text-3xl font-bold text-red-600 mt-2">0</p>
+            </div>
+            <div class="bg-red-100 p-4 rounded-full">
+              <i class="fas fa-times-circle text-red-500 text-2xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-xl card-shadow slide-down" style="animation-delay: 0.3s">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-gray-500 text-sm">Tổng Kích hoạt</p>
+              <p id="statActivations" class="text-3xl font-bold text-purple-600 mt-2">0</p>
+            </div>
+            <div class="bg-purple-100 p-4 rounded-full">
+              <i class="fas fa-mobile-alt text-purple-500 text-2xl"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions Bar -->
+      <div class="bg-white p-4 rounded-xl card-shadow mb-6 flex justify-between items-center">
+        <div class="flex-1 max-w-md">
+          <input type="text" id="searchInput" placeholder="Tìm kiếm keys..."
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none">
+        </div>
+        <div class="flex space-x-3 ml-4">
+          <button id="quickKeyBtn"
+            class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg font-semibold transition">
+            <i class="fas fa-bolt mr-2"></i>Key Nhanh (1 tháng)
+          </button>
+          <button id="createKeyBtn" class="btn-primary text-white px-6 py-2 rounded-lg font-semibold">
+            <i class="fas fa-plus mr-2"></i>Tạo Key Mới
+          </button>
+        </div>
+      </div>
+
+      <!-- Keys Table -->
+      <div class="bg-white rounded-xl card-shadow overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full table-hover">
+            <thead class="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Key Name</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Trạng thái
+                </th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hết hạn</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sử dụng hôm
+                  nay</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Thao tác
+                </th>
+              </tr>
+            </thead>
+            <tbody id="keysTableBody" class="bg-white divide-y divide-gray-200">
+              <!-- Keys will be loaded here -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+
+  <!-- Create Key Modal -->
+  <div id="createKeyModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 w-full max-w-lg slide-down">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800">Tạo Key Mới</h2>
+        <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-2xl"></i>
+        </button>
+      </div>
+
+      <form id="createKeyForm" class="space-y-6">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Tên Key</label>
+          <input type="text" id="keyNameInput" required
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+            placeholder="Ví dụ: khach-nguyen-van-a">
+          <p class="text-xs text-gray-500 mt-1">Hoặc để trống để tự động tạo</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Ngày hết hạn</label>
+          <input type="date" id="expiryInput" required
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Giới hạn chat / ngày</label>
+          <input type="number" id="maxActivationsInput"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+            value="100" min="1" max="10000" required>
+          <p class="mt-1 text-xs text-gray-500">Số lượng request tối đa mỗi ngày cho key này.</p>
+        </div>
+
+        <div id="createKeyError" class="hidden text-red-500 text-sm bg-red-50 p-3 rounded-lg"></div>
+
+        <div class="flex space-x-4">
+          <button type="button" id="cancelCreateBtn"
+            class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition">
+            Hủy
+          </button>
+          <button type="submit" class="flex-1 btn-primary text-white py-3 rounded-lg font-semibold">
+            <i class="fas fa-plus mr-2"></i>Tạo Key
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-2xl p-8 w-full max-w-lg slide-down max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-800"><i class="fas fa-cog mr-2"></i>Settings</h2>
+        <button id="closeSettingsBtn" class="text-gray-400 hover:text-gray-600">
+          <i class="fas fa-times text-2xl"></i>
+        </button>
+      </div>
+
+      <form id="settingsForm" class="space-y-6">
+        <!-- Profile Selector -->
+        <div class="p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg border border-purple-200">
+          <div class="flex items-center justify-between mb-2">
+            <label class="text-sm font-semibold text-gray-700">
+              <i class="fas fa-bookmark text-purple-500 mr-2"></i>API Profiles
+            </label>
+            <button type="button" id="saveProfileBtn"
+              class="text-sm text-purple-600 hover:text-purple-800 font-medium transition">
+              <i class="fas fa-plus mr-1"></i>Lưu Profile
+            </button>
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="profileSelect"
+              class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none text-sm bg-white">
+              <option value="">-- Chọn Profile để áp dụng --</option>
+            </select>
+            <button type="button" id="deleteProfileBtn"
+              class="text-red-500 hover:text-red-700 px-3 py-2 rounded-lg hover:bg-red-50 transition"
+              title="Xóa profile">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Lưu settings thành profile để chuyển đổi nhanh khi cần</p>
+        </div>
+
+        <div class="border-t pt-4"></div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">API URL gốc</label>
+          <input type="url" id="apiUrlInput" required
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+            placeholder="https://code.newcli.com/claude/droid">
+          <p class="text-xs text-gray-500 mt-1">URL endpoint của nhà cung cấp AI (NewCLI, OpenRouter...)</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">API Key gốc</label>
+          <input type="password" id="apiKeyInput" required
+            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
+            placeholder="sk-xxxxxxxxxxxxxxxx">
+          <p class="text-xs text-gray-500 mt-1">Key xác thực với nhà cung cấp AI</p>
+        </div>
+
+        <div class="border-t pt-4 mt-4">
+          <h3 class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-exchange-alt mr-2"></i>Model Mapping
+          </h3>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Model hiển thị (Client)</label>
+              <input type="text" id="modelDisplayInput"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+                placeholder="Claude-Opus-4.5-VIP">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-600 mb-1">Model thật (Server)</label>
+              <input type="text" id="modelActualInput"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+                placeholder="claude-3-5-haiku-20241022">
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Client gửi "Model hiển thị" → Proxy chuyển thành "Model thật"</p>
+        </div>
+
+        <div class="border-t pt-4 mt-4">
+          <h3 class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-robot mr-2"></i>System Prompt (Mặc định)
+          </h3>
+          <textarea id="systemPromptInput" rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+            placeholder="You are a helpful AI assistant..."></textarea>
+          <p class="text-xs text-gray-500 mt-1">System prompt mặc định cho các key chưa chọn model.</p>
+        </div>
+
+        <!-- Per-Model System Prompts -->
+        <div class="border-t pt-4 mt-4">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-gray-700">
+              <i class="fas fa-layer-group mr-2"></i>Model System Prompts
+            </h3>
+            <button type="button" id="addModelBtn"
+              class="text-sm text-purple-600 hover:text-purple-800 font-medium transition">
+              <i class="fas fa-plus mr-1"></i>Thêm Model
+            </button>
+          </div>
+
+          <!-- Model List -->
+          <div id="modelsList" class="space-y-2 max-h-40 overflow-y-auto mb-3">
+            <!-- Models will be loaded here -->
+            <p class="text-sm text-gray-400 text-center py-2">Chưa có model nào</p>
+          </div>
+
+          <!-- Add/Edit Model Form (hidden by default) -->
+          <div id="modelForm" class="hidden p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div class="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Model ID</label>
+                <input type="text" id="modelIdInput"
+                  class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-purple-500 outline-none"
+                  placeholder="gemini">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-600 mb-1">Tên hiển thị</label>
+                <input type="text" id="modelNameInput"
+                  class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-purple-500 outline-none"
+                  placeholder="Gemini 2.0">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="block text-xs font-medium text-gray-600 mb-1">System Prompt</label>
+              <textarea id="modelSystemPromptInput" rows="2"
+                class="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-purple-500 outline-none"
+                placeholder="Bạn là Gemini, trợ lý AI của Google..."></textarea>
+            </div>
+            <div class="flex justify-end gap-2">
+              <button type="button" id="cancelModelBtn"
+                class="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 transition">
+                Hủy
+              </button>
+              <button type="button" id="saveModelBtn"
+                class="px-3 py-1.5 bg-purple-500 text-white text-sm rounded hover:bg-purple-600 transition">
+                Lưu Model
+              </button>
+            </div>
+          </div>
+          <p class="text-xs text-gray-500 mt-2">Users có thể chọn model qua API /api/user/model để sử dụng system prompt
+            tương ứng.</p>
+        </div>
+
+        <div id="settingsError" class="hidden text-red-500 text-sm bg-red-50 p-3 rounded-lg"></div>
+        <div id="settingsSuccess" class="hidden text-green-500 text-sm bg-green-50 p-3 rounded-lg"></div>
+
+        <div class="flex space-x-4">
+          <button type="button" id="cancelSettingsBtn"
+            class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg font-semibold hover:bg-gray-300 transition">
+            Hủy
+          </button>
+          <button type="submit" class="flex-1 btn-primary text-white py-3 rounded-lg font-semibold">
+            <i class="fas fa-save mr-2"></i>Lưu Settings
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/admin/app.js"></script>
+</body>
+
+</html>
