@@ -9,7 +9,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const { id, name, api_key, api_url, capabilities, speed, description, is_active } = req.body;
+        const { id, name, api_key, api_url, model_actual, capabilities, speed, description, is_active } = req.body;
 
         if (!id) {
             return res.status(400).json({ error: 'Profile ID is required' });
@@ -25,6 +25,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             name: name || existingProfile.name,
             api_key: api_key || existingProfile.api_key,
             api_url: api_url || existingProfile.api_url,
+            model_actual: model_actual !== undefined ? model_actual : existingProfile.model_actual,
             capabilities: capabilities !== undefined ? capabilities : existingProfile.capabilities,
             speed: speed || existingProfile.speed,
             description: description !== undefined ? description : existingProfile.description,

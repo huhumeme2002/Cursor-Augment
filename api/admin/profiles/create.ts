@@ -10,7 +10,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const { name, api_key, api_url, capabilities, speed, description, is_active } = req.body;
+        const { name, api_key, api_url, model_actual, capabilities, speed, description, is_active } = req.body;
 
         if (!name || !api_key || !api_url) {
             return res.status(400).json({ error: 'Missing required fields' });
@@ -21,6 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             name,
             api_key,
             api_url,
+            model_actual: model_actual || undefined,
             capabilities: Array.isArray(capabilities) ? capabilities : [],
             speed: speed || 'medium',
             description: description || '',
